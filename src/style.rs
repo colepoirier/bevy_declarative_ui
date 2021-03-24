@@ -94,8 +94,8 @@ pub enum Classes {
     AlignLeft,
     AlignCenterX,
     AlignCenterY,
-    AlignedHorizontal,
-    AlignedVertical,
+    AlignedHorizontally,
+    AlignedVertically,
 
     // space evenly
     SpaceEvenly,
@@ -225,8 +225,8 @@ impl Classes {
             Self::AlignLeft => "al",
             Self::AlignCenterX => "cx",
             Self::AlignCenterY => "cy",
-            Self::AlignedHorizontal => "ah",
-            Self::AlignedVertical => "av",
+            Self::AlignedHorizontally => "ah",
+            Self::AlignedVertically => "av",
 
             // space evenly
             Self::SpaceEvenly => "sev",

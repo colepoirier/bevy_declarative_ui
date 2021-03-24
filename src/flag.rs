@@ -1,26 +1,30 @@
-pub struct Field(u32, u32);
+#[derive(Debug, PartialOrd, PartialEq, Clone)]
+
+pub struct Field(pub u32, pub u32);
 
 impl Field {
     pub fn none() -> Self {
         Self(0, 0)
     }
-    pub fn merge(self, field: Self) -> Self {
-        Self(self.0 | field.0, self.1 | field.1)
+    pub fn merge(&mut self, field: Self) -> () {
+        self.0 |= field.0;
+        self.1 |= field.1;
     }
-    pub fn add(&mut self, flag: Flag) -> () {
+    pub fn add(&mut self, flag: &Flag) -> () {
         match flag {
             Flag::Flag(first) => self.0 |= first,
             Flag::Second(second) => self.1 |= second,
         };
     }
-    pub fn present(&self, flag: Flag) -> bool {
+    pub fn present(&self, flag: &Flag) -> bool {
         match flag {
-            Flag::Flag(first) => (first & self.0) == first,
-            Flag::Second(second) => (second & self.1) == second,
+            Flag::Flag(first) => (first & self.0) == *first,
+            Flag::Second(second) => (second & self.1) == *second,
         }
     }
 }
 
+#[derive(Debug, PartialOrd, PartialEq, Clone)]
 pub enum Flag {
     Flag(u32),
     Second(u32),

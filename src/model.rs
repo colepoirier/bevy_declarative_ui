@@ -255,8 +255,8 @@ pub enum Style {
     FontSize(u8),
     Single(String, String, String),
     Colored(String, String, Color),
-    Spacing(String, u8, u8),
-    BorderWidth(String, u8, u8, u8, u8),
+    Spacing(String, u32, u32),
+    BorderWidth(String, u32, u32, u32, u32),
     Padding(String, f32, f32, f32, f32),
     GridTemplate(GridTemplate),
     GridPosition(GridPosition),
@@ -793,9 +793,9 @@ pub struct Property(String, String);
 
 #[derive(Debug, Default, PartialOrd, PartialEq, Clone, Copy)]
 pub struct Coordinate {
-    x: f32,
-    y: f32,
-    z: f32,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
 impl Coordinate {
@@ -1115,7 +1115,7 @@ impl Color {
     }
 }
 
-trait FloatClass {
+pub trait FloatClass {
     fn float_class(&self) -> String;
 }
 
@@ -3157,7 +3157,7 @@ pub fn extract_spacing_and_padding(
         })
 }
 
-pub fn get_spacing(attrs: Vec<Attribute>, default: (u8, u8)) -> (u8, u8) {
+pub fn get_spacing(attrs: Vec<Attribute>, default: (u32, u32)) -> (u32, u32) {
     let res = attrs.into_iter().rev().fold(None, |acc, attr| {
         if let Some(x) = acc {
             Some(x)
@@ -3172,11 +3172,16 @@ pub fn get_spacing(attrs: Vec<Attribute>, default: (u8, u8)) -> (u8, u8) {
     res.unwrap_or_else(|| default)
 }
 
-pub fn spacing_class_name(x: u8, y: u8) -> String {
+pub fn spacing_class_name(x: u32, y: u32) -> String {
     format!("spacing-{}-{}", x, y)
 }
 
-pub fn padding_class_name(top: u8, right: u8, bottom: u8, left: u8) -> String {
+pub fn padding_class_name(
+    top: u32,
+    right: u32,
+    bottom: u32,
+    left: u32,
+) -> String {
     format!("pad-{}-{}-{}-{}", top, right, bottom, left,)
 }
 
@@ -4134,6 +4139,44 @@ fn to_grid_len_helper(
     }
 }
 
+// unwrapDecorations : List (Attribute Never Never) -> List Style
+// unwrapDecorations attrs =
+//     case List.foldl unwrapDecsHelper ( [], Untransformed ) attrs of
+//         ( styles, transform ) ->
+//             Transform transform :: styles
+
+pub fn unwrap_decorations(attrs: Vec<Attribute>) -> Vec<Style> {
+    let (styles, transform) = attrs
+        .into_iter()
+        .fold((vec![], Transform::Untransformed), |(styles, t), attr| {
+            unwrap_decorations_helper(attr, styles, t)
+        });
+
+    let mut t = vec![Style::Transform(transform)];
+    t.extend(styles);
+    let styles = t;
+    styles
+}
+
+pub fn unwrap_decorations_helper(
+    attr: Attribute,
+    styles: Vec<Style>,
+    t: Transform,
+) -> (Vec<Style>, Transform) {
+    match attr {
+        Attribute::Style(_, style) => {
+            let mut style = vec![style];
+            style.extend(styles);
+            let styles = style;
+            (styles, t)
+        }
+        Attribute::TransformComponent(_, component) => {
+            (styles, t.compose(&component))
+        }
+        _ => (styles, t),
+    }
+}
+
 // map : (msg -> msg1) -> Element msg -> Element msg1
 // map fn el =
 //     case el of
@@ -4224,24 +4267,6 @@ fn to_grid_len_helper(
 
 //         TransformComponent fl trans ->
 //             TransformComponent fl trans
-
-// unwrapDecorations : List (Attribute Never Never) -> List Style
-// unwrapDecorations attrs =
-//     case List.foldl unwrapDecsHelper ( [], Untransformed ) attrs of
-//         ( styles, transform ) ->
-//             Transform transform :: styles
-
-// unwrapDecsHelper : Attribute Never Never -> (List Style, Transformation) -> (List Style, Transformation)
-// unwrapDecsHelper attr ( styles, trans ) =
-//     case removeNever attr of
-//         StyleClass _ style ->
-//             ( style :: styles, trans )
-
-//         TransformComponent _ component ->
-//             ( styles, composeTransformation trans component )
-
-//         _ ->
-//             ( styles, trans )
 
 // removeNever : Attribute Never Never -> Attribute () msg
 // removeNever style =

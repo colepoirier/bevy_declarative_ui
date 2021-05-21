@@ -1,11 +1,16 @@
+use std::cmp;
+use std::ops::Neg;
+
 use crate::{
     flag::{Field, Flag},
     model::{
-        div, element, extract_spacing_and_padding, html,
+        div, element, extract_spacing_and_padding, html, padding_class_name,
         padding_class_name_float, render_root, root_style, spacing_class_name,
-        virtual_dom as vdom, virtual_dom::Node, Attribute, Children, Color,
-        Description, Element, FocusStyle, HoverSetting, LayoutContext, Length,
-        Location, NodeName, Opt, RenderMode, Style,
+        unwrap_decorations, virtual_dom as vdom, virtual_dom::Node, Attribute,
+        Children, Color, Coordinate, Description, Element, FloatClass,
+        FocusStyle, HAlign, HoverSetting, LayoutContext, Length, Location,
+        NodeName, Opt, PseudoClass, RenderMode, Style, TransformComponent,
+        VAlign,
     },
     style::Classes,
 };
@@ -228,11 +233,56 @@ pub fn rgba255(r: u8, g: u8, b: u8, a: f32) -> Color {
     }
 }
 
-/// This is a special attribute that counts as both a Attribute and a Decoration
-type Attr = Attribute;
+// /// This is a special attribute that counts as both a Attribute and a Decoration
+// type Attr = Attribute;
 
-/// Only decorations
-type Decoration = Attribute;
+// /// Only decorations
+// type Decoration = Attribute;
+
+pub fn px(px: u64) -> Length {
+    Length::Px(px)
+}
+
+/// Shrink an element to fit its contents.
+pub fn shrink() -> Length {
+    Length::Content
+}
+
+/// Fill the available space. The available space will be split evenly between elements that have width(fill()).
+pub fn fill() -> Length {
+    Length::Fill(1)
+}
+
+/// Similarly you can set a minimum boundary.
+///
+/// el(text("I will stop at 300px"))
+/// .height(minimum(30, maximum(300, fill()))
+///
+pub fn min(i: u64, l: Length) -> Length {
+    Length::Min(i, Box::new(l))
+}
+
+/// Add a maximum to a length.
+///
+/// el(text("I will stop at 300px"))
+/// .height(maximum(300, fill())
+///
+pub fn max(i: u64, l: Length) -> Length {
+    Length::Max(i, Box::new(l))
+}
+
+/// Sometimes you may not want to split available space evenly.
+/// In this case you can use fill_portion to define which
+/// elements should have what portion of the available space.
+///
+/// So, two elements, one with width(fill_portion(2)) and one
+/// with width(fill_portion(3)). The first would get 2 portions
+/// of the available space, while the second would get 3.
+///
+/// **Also:** fill == fill_portion(1)
+pub fn fill_portion(i: u64) -> Length {
+    Length::Fill(i)
+}
 
 /// This is your top level node where you can turn Element into Html.
 pub fn layout(attrs: Vec<Attribute>, child: Element) -> Node {
@@ -800,38 +850,6 @@ pub fn behind_content(element: Element) -> Attribute {
     create_nearby(Location::Behind, element)
 }
 
-pub fn px(px: u64) -> Length {
-    Length::Px(px)
-}
-
-/// Shrink an element to fit its contents.
-pub fn shrink() -> Length {
-    Length::Content
-}
-
-/// Fill the available space. The available space will be split evenly between elements that have width(fill()).
-pub fn fill() -> Length {
-    Length::Fill(1)
-}
-
-/// Similarly you can set a minimum boundary.
-///
-/// el(text("I will stop at 300px"))
-/// .height(minimum(30, maximum(300, fill()))
-///
-pub fn min(i: u64, l: Length) -> Length {
-    Length::Min(i, Box::new(l))
-}
-
-/// Add a maximum to a length.
-///
-/// el(text("I will stop at 300px"))
-/// .height(maximum(300, fill())
-///
-pub fn max(i: u64, l: Length) -> Length {
-    Length::Max(i, Box::new(l))
-}
-
 pub fn width(w: Length) -> Attribute {
     Attribute::Width(w)
 }
@@ -840,23 +858,326 @@ pub fn height(w: Length) -> Attribute {
     Attribute::Height(w)
 }
 
-/// Sometimes you may not want to split available space evenly.
-/// In this case you can use fill_portion to define which
-/// elements should have what portion of the available space.
-///
-/// So, two elements, one with width(fill_portion(2)) and one
-/// with width(fill_portion(3)). The first would get 2 portions
-/// of the available space, while the second would get 3.
-///
-/// **Also:** fill == fill_portion(1)
-///
-pub fn fill_portion(i: u64) -> Length {
-    Length::Fill(i)
+pub fn scale(n: f32) -> Attribute {
+    Attribute::TransformComponent(
+        Flag::scale(),
+        TransformComponent::Scale(Coordinate { x: n, y: n, z: 1.0 }),
+    )
 }
 
-pub fn spacing(x: u8) -> Attribute {
+/// Angle is given in radians. [Here are some conversion functions if you want to use another unit.](https://package.elm-lang.org/packages/elm/core/latest/Basics#degrees)
+pub fn rotate(angle: f32) -> Attribute {
+    Attribute::TransformComponent(
+        Flag::rotate(),
+        TransformComponent::Rotate(
+            Coordinate {
+                x: 0.0,
+                y: 0.0,
+                z: 1.0,
+            },
+            angle,
+        ),
+    )
+}
+
+pub fn move_up(y: f32) -> Attribute {
+    Attribute::TransformComponent(
+        Flag::move_y(),
+        TransformComponent::MoveY(y.neg()),
+    )
+}
+
+pub fn move_down(y: f32) -> Attribute {
+    Attribute::TransformComponent(Flag::move_y(), TransformComponent::MoveY(y))
+}
+
+pub fn move_left(x: f32) -> Attribute {
+    Attribute::TransformComponent(
+        Flag::move_x(),
+        TransformComponent::MoveX(x.neg()),
+    )
+}
+
+pub fn move_right(x: f32) -> Attribute {
+    Attribute::TransformComponent(Flag::move_x(), TransformComponent::MoveX(x))
+}
+
+pub fn padding(x: u32) -> Attribute {
+    let f = x as f32;
+    Attribute::Style(
+        Flag::padding(),
+        Style::Padding(format!("p-{}", x), f, f, f, f),
+    )
+}
+
+pub fn padding_xy(x: u32, y: u32) -> Attribute {
+    if x == y {
+        let f = x as f32;
+
+        Attribute::Style(
+            Flag::padding(),
+            Style::Padding(format!("p-{}", x), f, f, f, f),
+        )
+    } else {
+        let s = format!("p-{}-{}", x, y);
+
+        let x = x as f32;
+        let y = y as f32;
+
+        Attribute::Style(Flag::padding(), Style::Padding(s, y, x, y, x))
+    }
+}
+
+pub fn padding_each(top: u32, right: u32, bottom: u32, left: u32) -> Attribute {
+    if top == right && top == bottom && top == left {
+        let f = top as f32;
+
+        Attribute::Style(
+            Flag::padding(),
+            Style::Padding(format!("p-{}", top), f, f, f, f),
+        )
+    } else {
+        Attribute::Style(
+            Flag::padding(),
+            Style::Padding(
+                padding_class_name(top, right, bottom, left),
+                top as f32,
+                right as f32,
+                bottom as f32,
+                left as f32,
+            ),
+        )
+    }
+}
+
+pub fn center_x() -> Attribute {
+    Attribute::AlignX(HAlign::CenterX)
+}
+
+pub fn center_y() -> Attribute {
+    Attribute::AlignY(VAlign::CenterY)
+}
+
+pub fn align_top() -> Attribute {
+    Attribute::AlignY(VAlign::Top)
+}
+
+pub fn align_bottom() -> Attribute {
+    Attribute::AlignY(VAlign::Bottom)
+}
+
+pub fn align_left() -> Attribute {
+    Attribute::AlignX(HAlign::Left)
+}
+
+pub fn align_right() -> Attribute {
+    Attribute::AlignX(HAlign::Right)
+}
+
+pub fn space_evenly() -> Attribute {
+    Attribute::Class(
+        Flag::spacing(),
+        Classes::SpaceEvenly.to_string().to_string(),
+    )
+}
+
+pub fn spacing(x: u32) -> Attribute {
     Attribute::Style(
         Flag::spacing(),
         Style::Spacing(spacing_class_name(x, x), x, x),
+    )
+}
+
+/// In the majority of cases you'll just need to use `spacing`,
+/// which will work as intended.
+///
+/// However for some layouts, like `textColumn`, you may want to
+/// set a different spacing for the x axis compared to the y axis.
+pub fn spacing_xy(x: u32, y: u32) -> Attribute {
+    Attribute::Style(
+        Flag::spacing(),
+        Style::Spacing(spacing_class_name(x, y), x, y),
+    )
+}
+
+/// Make an element transparent and have it ignore any mouse
+/// or touch events, though it will stil take up space.
+pub fn transparent(on: bool) -> Attribute {
+    if on {
+        Attribute::Style(
+            Flag::transparency(),
+            Style::Transparency("transparent".to_string(), 1.0),
+        )
+    } else {
+        Attribute::Style(
+            Flag::transparency(),
+            Style::Transparency("visible".to_string(), 0.0),
+        )
+    }
+}
+
+/// A capped value between 0.0 and 1.0, where 0.0
+/// is transparent and 1.0 is fully opaque.
+///
+/// Semantically equivalent to html opacity.
+pub fn alpha(o: f32) -> Attribute {
+    let t = 1.0 - o.clamp(0.0, 1.0);
+    Attribute::Style(
+        Flag::transparency(),
+        Style::Transparency(format!("transparency-{}", t.float_class()), t),
+    )
+}
+
+pub fn scrollbars() -> Attribute {
+    Attribute::Class(
+        Flag::overflow(),
+        Classes::Scrollbars.to_string().to_string(),
+    )
+}
+
+pub fn scrollbar_x() -> Attribute {
+    Attribute::Class(
+        Flag::overflow(),
+        Classes::ScrollbarsX.to_string().to_string(),
+    )
+}
+
+pub fn scrollbar_y() -> Attribute {
+    Attribute::Class(
+        Flag::overflow(),
+        Classes::ScrollbarsY.to_string().to_string(),
+    )
+}
+
+pub fn clip() -> Attribute {
+    Attribute::Class(Flag::overflow(), Classes::Clip.to_string().to_string())
+}
+
+pub fn clip_x() -> Attribute {
+    Attribute::Class(Flag::overflow(), Classes::ClipX.to_string().to_string())
+}
+
+pub fn clip_y() -> Attribute {
+    Attribute::Class(Flag::overflow(), Classes::ClipY.to_string().to_string())
+}
+
+/// Set the cursor to be a pointing hand when it's hovering over this element.
+pub fn pointer() -> Attribute {
+    Attribute::Class(
+        Flag::cursor(),
+        Classes::CursorPointer.to_string().to_string(),
+    )
+}
+
+#[derive(Debug, PartialOrd, PartialEq, Clone, Copy)]
+pub enum DeviceClass {
+    Phone,
+    Tablet,
+    Desktop,
+    BigDesktop,
+}
+
+impl Default for DeviceClass {
+    fn default() -> Self {
+        DeviceClass::Desktop
+    }
+}
+
+#[derive(Debug, PartialOrd, PartialEq, Clone, Copy)]
+pub enum Orientation {
+    Portrait,
+    Landscape,
+}
+
+impl Default for Orientation {
+    fn default() -> Self {
+        Orientation::Landscape
+    }
+}
+
+#[derive(Debug, Default, PartialOrd, PartialEq, Clone, Copy)]
+pub struct Device {
+    class: DeviceClass,
+    orientation: Orientation,
+}
+
+/// Takes in a Window.Size and returns a device
+/// profile which can be used for responsiveness.
+///
+/// If you have more detailed concerns around
+/// responsiveness, it probably makes sense to copy
+/// this function into your codebase and modify as
+/// needed.
+pub fn classify_device(w: u32, h: u32) -> Device {
+    let long_side = cmp::max(w, h);
+    let short_side = cmp::min(w, h);
+
+    let class = if short_side < 600 {
+        DeviceClass::Phone
+    } else if long_side <= 1200 {
+        DeviceClass::Tablet
+    } else if long_side > 1200 && long_side <= 1920 {
+        DeviceClass::Desktop
+    } else {
+        DeviceClass::BigDesktop
+    };
+
+    let orientation = if w < h {
+        Orientation::Portrait
+    } else {
+        Orientation::Landscape
+    };
+
+    Device { orientation, class }
+}
+
+/// When designing it's nice to use a modular scale
+/// to set spacial rythms.
+///
+///    scaled =
+///        Element.modular 16 1.25
+///
+/// A modular scale starts with a number, and multiplies
+/// it by a ratio a number of times.
+///
+/// Then, when setting font sizes you can use:
+///
+///     Font.size (scaled 1) -- results in 16
+///
+///     Font.size (scaled 2) -- 16 * 1.25 results in 20
+///
+///     Font.size (scaled 4) -- 16 * 1.25 ^ (4 - 1) results in 31.25
+///
+/// We can also provide negative numbers to scale below 16px.
+///
+///     Font.size (scaled -1) -- 16 * 1.25 ^ (-1) results in 12.8
+pub fn modular(normal: f32, ratio: f32, rescale: i32) -> f32 {
+    if rescale == 0 {
+        normal
+    } else if rescale < 0 {
+        (normal * ratio).powf(rescale as f32)
+    } else {
+        (normal * ratio).powf((rescale - 1) as f32)
+    }
+}
+
+pub fn mouse_over(attrs: Vec<Attribute>) -> Attribute {
+    Attribute::Style(
+        Flag::hover(),
+        Style::PseudoSelector(PseudoClass::Hover, unwrap_decorations(attrs)),
+    )
+}
+
+pub fn mouse_down(attrs: Vec<Attribute>) -> Attribute {
+    Attribute::Style(
+        Flag::active(),
+        Style::PseudoSelector(PseudoClass::Active, unwrap_decorations(attrs)),
+    )
+}
+
+pub fn focused(attrs: Vec<Attribute>) -> Attribute {
+    Attribute::Style(
+        Flag::focus(),
+        Style::PseudoSelector(PseudoClass::Focus, unwrap_decorations(attrs)),
     )
 }

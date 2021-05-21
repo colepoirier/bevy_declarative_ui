@@ -138,6 +138,14 @@ pub mod html {
         pub fn rel(r: String) -> vdom::Attribute {
             style("rel".to_string(), r)
         }
+
+        pub fn target(t: String) -> vdom::Attribute {
+            style("target".to_string(), t)
+        }
+
+        pub fn download(file_name: String) -> vdom::Attribute {
+            style("download".to_string(), file_name)
+        }
     }
 }
 

@@ -5,7 +5,7 @@ use crate::{
         padding_class_name_float, render_root, root_style, spacing_class_name,
         virtual_dom as vdom, virtual_dom::Node, Attribute, Children, Color,
         Description, Element, FocusStyle, HoverSetting, LayoutContext, Length,
-        NodeName, Opt, RenderMode, Style,
+        Location, NodeName, Opt, RenderMode, Style,
     },
     style::Classes,
 };
@@ -233,60 +233,6 @@ type Attr = Attribute;
 
 /// Only decorations
 type Decoration = Attribute;
-
-pub fn px(px: u64) -> Length {
-    Length::Px(px)
-}
-
-/// Shrink an element to fit its contents.
-pub fn shrink() -> Length {
-    Length::Content
-}
-
-/// Fill the available space. The available space will be split evenly between elements that have width(fill()).
-pub fn fill() -> Length {
-    Length::Fill(1)
-}
-
-/// Similarly you can set a minimum boundary.
-///
-/// el(text("I will stop at 300px"))
-/// .height(minimum(30, maximum(300, fill()))
-///
-pub fn min(i: u64, l: Length) -> Length {
-    Length::Min(i, Box::new(l))
-}
-
-/// Add a maximum to a length.
-///
-/// el(text("I will stop at 300px"))
-/// .height(maximum(300, fill())
-///
-pub fn max(i: u64, l: Length) -> Length {
-    Length::Max(i, Box::new(l))
-}
-
-pub fn width(w: Length) -> Attribute {
-    Attribute::Width(w)
-}
-
-pub fn height(w: Length) -> Attribute {
-    Attribute::Height(w)
-}
-
-/// Sometimes you may not want to split available space evenly.
-/// In this case you can use fill_portion to define which
-/// elements should have what portion of the available space.
-///
-/// So, two elements, one with width(fill_portion(2)) and one
-/// with width(fill_portion(3)). The first would get 2 portions
-/// of the available space, while the second would get 3.
-///
-/// **Also:** fill == fill_portion(1)
-///
-pub fn fill_portion(i: u64) -> Length {
-    Length::Fill(i)
-}
 
 /// This is your top level node where you can turn Element into Html.
 pub fn layout(attrs: Vec<Attribute>, child: Element) -> Node {
@@ -735,6 +681,177 @@ pub fn link(attrs: Vec<Attribute>, url: String, label: Element) -> Element {
         attrs,
         Children::Unkeyed(vec![label]),
     )
+}
+
+pub fn new_tablink(
+    attrs: Vec<Attribute>,
+    url: String,
+    label: Element,
+) -> Element {
+    let mut attr = vec![
+        Attribute::Attr(html::attributes::href(url)),
+        Attribute::Attr(html::attributes::rel(
+            "noopener noreferrer".to_string(),
+        )),
+        Attribute::Attr(html::attributes::target("_blank".to_string())),
+        width(shrink()),
+        height(shrink()),
+        Attribute::html_class(format!(
+            "{} {} {}",
+            Classes::ContentCenterX.to_string(),
+            Classes::ContentCenterY.to_string(),
+            Classes::Link.to_string(),
+        )),
+    ];
+
+    attr.extend(attrs);
+    let attrs = attr;
+
+    element(
+        LayoutContext::AsEl,
+        NodeName::NodeName("a".to_string()),
+        attrs,
+        Children::Unkeyed(vec![label]),
+    )
+}
+
+pub fn download(attrs: Vec<Attribute>, url: String, label: Element) -> Element {
+    let mut attr = vec![
+        Attribute::Attr(html::attributes::href(url)),
+        Attribute::Attr(html::attributes::download("".to_string())),
+        width(shrink()),
+        height(shrink()),
+        Attribute::html_class(Classes::ContentCenterX.to_string().to_string()),
+        Attribute::html_class(Classes::ContentCenterY.to_string().to_string()),
+    ];
+
+    attr.extend(attrs);
+    let attrs = attr;
+
+    element(
+        LayoutContext::AsEl,
+        NodeName::NodeName("a".to_string()),
+        attrs,
+        Children::Unkeyed(vec![label]),
+    )
+}
+
+pub fn download_as(
+    attrs: Vec<Attribute>,
+    url: String,
+    file_name: String,
+    label: Element,
+) -> Element {
+    let mut attr = vec![
+        Attribute::Attr(html::attributes::href(url)),
+        Attribute::Attr(html::attributes::download(file_name)),
+        width(shrink()),
+        height(shrink()),
+        Attribute::html_class(Classes::ContentCenterX.to_string().to_string()),
+        Attribute::html_class(Classes::ContentCenterY.to_string().to_string()),
+    ];
+
+    attr.extend(attrs);
+    let attrs = attr;
+
+    element(
+        LayoutContext::AsEl,
+        NodeName::NodeName("a".to_string()),
+        attrs,
+        Children::Unkeyed(vec![label]),
+    )
+}
+
+pub fn create_nearby(loc: Location, element: Element) -> Attribute {
+    match element {
+        Element::Empty => Attribute::None,
+        _ => Attribute::Nearby(loc, element),
+    }
+}
+
+pub fn below(element: Element) -> Attribute {
+    create_nearby(Location::Below, element)
+}
+
+pub fn above(element: Element) -> Attribute {
+    create_nearby(Location::Above, element)
+}
+
+pub fn on_right(element: Element) -> Attribute {
+    create_nearby(Location::OnRight, element)
+}
+
+pub fn on_left(element: Element) -> Attribute {
+    create_nearby(Location::OnLeft, element)
+}
+
+/// This will place an element in front of another.
+///
+/// **Note:** If you use this on a `layout` element,
+/// it will place the element as fixed to the viewport
+/// which can be useful for modals and overlays.
+pub fn in_front(element: Element) -> Attribute {
+    create_nearby(Location::InFront, element)
+}
+
+/// This will place an element between the background
+/// and the content of an element.
+pub fn behind_content(element: Element) -> Attribute {
+    create_nearby(Location::Behind, element)
+}
+
+pub fn px(px: u64) -> Length {
+    Length::Px(px)
+}
+
+/// Shrink an element to fit its contents.
+pub fn shrink() -> Length {
+    Length::Content
+}
+
+/// Fill the available space. The available space will be split evenly between elements that have width(fill()).
+pub fn fill() -> Length {
+    Length::Fill(1)
+}
+
+/// Similarly you can set a minimum boundary.
+///
+/// el(text("I will stop at 300px"))
+/// .height(minimum(30, maximum(300, fill()))
+///
+pub fn min(i: u64, l: Length) -> Length {
+    Length::Min(i, Box::new(l))
+}
+
+/// Add a maximum to a length.
+///
+/// el(text("I will stop at 300px"))
+/// .height(maximum(300, fill())
+///
+pub fn max(i: u64, l: Length) -> Length {
+    Length::Max(i, Box::new(l))
+}
+
+pub fn width(w: Length) -> Attribute {
+    Attribute::Width(w)
+}
+
+pub fn height(w: Length) -> Attribute {
+    Attribute::Height(w)
+}
+
+/// Sometimes you may not want to split available space evenly.
+/// In this case you can use fill_portion to define which
+/// elements should have what portion of the available space.
+///
+/// So, two elements, one with width(fill_portion(2)) and one
+/// with width(fill_portion(3)). The first would get 2 portions
+/// of the available space, while the second would get 3.
+///
+/// **Also:** fill == fill_portion(1)
+///
+pub fn fill_portion(i: u64) -> Length {
+    Length::Fill(i)
 }
 
 pub fn spacing(x: u8) -> Attribute {

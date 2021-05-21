@@ -1,10 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::format,
-    hint::unreachable_unchecked,
-    ops::Mul,
-    rc::Rc,
-};
+use std::collections::HashSet;
 
 pub mod virtual_dom {
     use crate::model::Property;
@@ -123,6 +117,26 @@ pub mod html {
 
         pub fn class(cls: String) -> vdom::Attribute {
             vdom::Attribute(cls)
+        }
+
+        pub fn style(k: String, v: String) -> vdom::Attribute {
+            vdom::Attribute(format!("{}={}", k, v))
+        }
+
+        pub fn src(s: String) -> vdom::Attribute {
+            style("src".to_string(), s)
+        }
+
+        pub fn alt(description: String) -> vdom::Attribute {
+            style("alt".to_string(), description)
+        }
+
+        pub fn href(url: String) -> vdom::Attribute {
+            style("href".to_string(), url)
+        }
+
+        pub fn rel(r: String) -> vdom::Attribute {
+            style("rel".to_string(), r)
         }
     }
 }
@@ -805,7 +819,7 @@ pub enum Attribute {
 }
 
 impl Attribute {
-    fn html_class(cls: String) -> Self {
+    pub fn html_class(cls: String) -> Self {
         Self::Attr(attributes::class(cls))
     }
 }
@@ -1064,10 +1078,10 @@ pub enum Location {
 
 #[derive(Debug, PartialOrd, PartialEq, Clone, Copy)]
 pub struct Color {
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
 }
 
 impl Color {
@@ -1108,6 +1122,10 @@ pub enum NodeName {
     Generic,
     NodeName(String),
     Embedded(String, String),
+}
+
+pub fn div() -> NodeName {
+    NodeName::div()
 }
 
 impl NodeName {

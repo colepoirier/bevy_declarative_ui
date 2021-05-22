@@ -1,5 +1,4 @@
 #[derive(Debug, PartialOrd, PartialEq, Clone)]
-
 pub struct Field(pub u32, pub u32);
 
 impl Field {

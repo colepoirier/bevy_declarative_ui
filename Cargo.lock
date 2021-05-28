@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "elm_ui_rs"
+name = "bevy_declarative_ui_experiment"
 version = "0.1.0"

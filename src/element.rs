@@ -4,15 +4,16 @@ use std::ops::Neg;
 use crate::{
     flag::{Field, Flag},
     model::{
-        div, element, extract_spacing_and_padding, html, padding_class_name,
+        div, element, extract_spacing_and_padding, padding_class_name,
         padding_class_name_float, render_root, root_style, spacing_class_name,
-        unwrap_decorations, virtual_dom as vdom, virtual_dom::Node, Attribute,
-        Children, Color, Coordinate, Description, Element, FloatClass,
-        FocusStyle, HAlign, HoverSetting, LayoutContext, Length, Location,
-        NodeName, Opt, PseudoClass, RenderMode, Style, TransformComponent,
-        VAlign,
+        unwrap_decorations, Attribute, Children, Color, Coordinate,
+        Description, Element, FloatClass, FocusStyle, HAlign, HoverSetting,
+        LayoutContext, Length, Location, NodeName, Opt, PseudoClass,
+        RenderMode, Style, TransformComponent, VAlign,
     },
     style::Classes,
+    vdom,
+    vdom::{html, Node},
 };
 
 ///
@@ -1180,4 +1181,12 @@ pub fn focused(attrs: Vec<Attribute>) -> Attribute {
         Flag::focus(),
         Style::PseudoSelector(PseudoClass::Focus, unwrap_decorations(attrs)),
     )
+}
+
+#[test]
+fn test_layout() {
+    layout(
+        vec![height(fill()), width(fill())],
+        Element::Text("Test".to_string()),
+    );
 }

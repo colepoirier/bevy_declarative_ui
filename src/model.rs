@@ -1,160 +1,12 @@
 use std::collections::HashSet;
 
-pub mod virtual_dom {
-    use crate::model::Property;
-
-    #[derive(Debug, Default, PartialOrd, PartialEq, Clone)]
-    pub struct Node {
-        pub tag: String,
-        pub attrs: Vec<Attribute>,
-        pub children: Vec<NodeType>,
-    }
-
-    #[derive(Debug, Clone, PartialEq, PartialOrd)]
-    pub enum NodeType {
-        Node(Node),
-        KeyedNode(String, Node),
-        Text(String),
-    }
-
-    impl Default for NodeType {
-        fn default() -> Self {
-            NodeType::Node(Node {
-                tag: "div".to_string(),
-                attrs: vec![],
-                children: vec![],
-            })
-        }
-    }
-
-    pub fn text(txt: String) -> NodeType {
-        NodeType::Text(txt)
-    }
-
-    pub fn node(
-        tag: String,
-        attrs: Vec<Attribute>,
-        children: Vec<NodeType>,
-    ) -> Node {
-        Node {
-            tag,
-            attrs,
-            children,
-        }
-    }
-
-    pub fn keyed_node(
-        key: String,
-        tag: String,
-        attrs: Vec<Attribute>,
-        children: Vec<NodeType>,
-    ) -> NodeType {
-        NodeType::KeyedNode(
-            key,
-            Node {
-                tag,
-                attrs,
-                children,
-            },
-        )
-    }
-
-    pub fn property(property: Property) -> Attribute {
-        Attribute(format!("{}={}", property.0, property.1))
-    }
-
-    #[derive(Debug, Default, PartialOrd, PartialEq, Clone)]
-    pub struct Attribute(pub String);
-}
-
-pub mod html {
-    use crate::model::virtual_dom as vdom;
-    use vdom::{node, Node, NodeType};
-
-    // pub type Node = Node;
-
-    pub fn text(txt: String) -> NodeType {
-        vdom::text(txt)
-    }
-
-    pub fn div(attrs: Vec<vdom::Attribute>, children: Vec<NodeType>) -> Node {
-        Node {
-            tag: "div".to_string(),
-            attrs,
-            children,
-        }
-    }
-
-    // paragraph html tag
-    pub fn p(attrs: Vec<vdom::Attribute>, children: Vec<NodeType>) -> Node {
-        Node {
-            tag: "p".to_string(),
-            attrs,
-            children,
-        }
-    }
-
-    // strikethrough html tag
-    pub fn s(attrs: Vec<vdom::Attribute>, children: Vec<NodeType>) -> Node {
-        Node {
-            tag: "s".to_string(),
-            attrs,
-            children,
-        }
-    }
-
-    // underline html tag
-    pub fn u(attrs: Vec<vdom::Attribute>, children: Vec<NodeType>) -> Node {
-        Node {
-            tag: "u".to_string(),
-            attrs,
-            children,
-        }
-    }
-
-    pub mod attributes {
-        use crate::model::virtual_dom as vdom;
-
-        pub fn class(cls: String) -> vdom::Attribute {
-            vdom::Attribute(cls)
-        }
-
-        pub fn style(k: String, v: String) -> vdom::Attribute {
-            vdom::Attribute(format!("{}={}", k, v))
-        }
-
-        pub fn src(s: String) -> vdom::Attribute {
-            style("src".to_string(), s)
-        }
-
-        pub fn alt(description: String) -> vdom::Attribute {
-            style("alt".to_string(), description)
-        }
-
-        pub fn href(url: String) -> vdom::Attribute {
-            style("href".to_string(), url)
-        }
-
-        pub fn rel(r: String) -> vdom::Attribute {
-            style("rel".to_string(), r)
-        }
-
-        pub fn target(t: String) -> vdom::Attribute {
-            style("target".to_string(), t)
-        }
-
-        pub fn download(file_name: String) -> vdom::Attribute {
-            style("download".to_string(), file_name)
-        }
-    }
-}
-
 use crate::flag::{Field, Flag};
 use crate::style;
 use crate::style::Classes;
-use html::attributes;
-use virtual_dom as vdom;
-use virtual_dom::{Node, NodeType};
+use crate::vdom;
+use crate::vdom::html;
+use crate::vdom::html::attributes;
+use crate::vdom::{Node, NodeType};
 
 use self::vdom::property;
 
@@ -789,7 +641,7 @@ impl Variant {
 }
 
 #[derive(Debug, PartialOrd, PartialEq, Clone)]
-pub struct Property(String, String);
+pub struct Property(pub String, pub String);
 
 #[derive(Debug, Default, PartialOrd, PartialEq, Clone, Copy)]
 pub struct Coordinate {
